@@ -143,6 +143,14 @@
 					>
 				</label>
 			</div>
+			<div class="field">
+				<label class="checkbox">
+					<input
+						v-model="settings.frontendSettings.expandSubtasksByDefault"
+						type="checkbox">
+					{{ $t('user.settings.general.expandSubtasksByDefault') }}
+				</label>
+			</div>
 		</div>
 	</Card>
 

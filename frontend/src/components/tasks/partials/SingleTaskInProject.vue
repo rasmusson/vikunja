@@ -8,12 +8,28 @@
 			@click="openTaskDetail"
 			@keyup.enter="openTaskDetail"
 		>
-			<FancyCheckbox
-				v-model="task.done"
-				:disabled="(isArchived || disabled) && !canMarkAsDone"
-				@update:modelValue="markAsDone"
-				@click.stop
-			/>
+			<div
+				v-if="!showProject"
+				class="task-tree-control">
+				<div class="task-tree-gutter">
+					<BaseButton
+						v-if="task.relatedTasks?.subtask?.length"
+						class="collapse-subtask-button"
+						@click.stop="collapsed = !collapsed">
+						<Icon
+							icon="chevron-down"
+							:class="{ 'subtasks-collapsed': collapsed }"
+						/>
+					</BaseButton>
+				</div>
+
+				<FancyCheckbox
+					v-model="task.done"
+					:disabled="(isArchived || disabled) && !canMarkAsDone"
+					@update:modelValue="markAsDone"
+					@click.stop
+				/>
+			</div>
 
 			<ColorBubble
 				v-if="!showProjectSeparately && projectColor !== '' && currentProject?.id !== task.projectId"
@@ -154,7 +170,6 @@
 			>
 				{{ project.title }}
 			</RouterLink>
-
 			<BaseButton
 				:class="{'is-favorite': task.isFavorite}"
 				class="favorite"
@@ -172,19 +187,21 @@
 			</BaseButton>
 			<slot />
 		</div>
-		<template v-if="typeof task.relatedTasks?.subtask !== 'undefined'">
-			<template v-for="subtask in task.relatedTasks.subtask">
-				<template v-if="getTaskById(subtask.id)">
-					<single-task-in-project
-						:key="subtask.id"
-						:the-task="getTaskById(subtask.id)"
-						:disabled="disabled"
-						:can-mark-as-done="canMarkAsDone"
-						:all-tasks="allTasks"
-						class="subtask-nested"
-					/>
+		<template v-if="task.relatedTasks?.subtask">
+			<div v-show="!collapsed" class="subtask-container">
+				<template v-for="subtask in task.relatedTasks.subtask">
+					<template v-if="getTaskById(subtask.id)">
+						<single-task-in-project
+							:key="subtask.id"
+							:the-task="getTaskById(subtask.id)"
+							:disabled="disabled"
+							:can-mark-as-done="canMarkAsDone"
+							:all-tasks="allTasks"
+							class="subtask-nested"
+						/>
+					</template>
 				</template>
-			</template>
+			</div>
 		</template>
 	</div>
 </template>
@@ -212,6 +229,7 @@ import TaskService from '@/services/task'
 import {formatDisplayDate, formatISO, formatDateLong} from '@/helpers/time/formatDate'
 import {success} from '@/message'
 
+import {useAuthStore} from '@/stores/auth'
 import {useProjectStore} from '@/stores/projects'
 import {useBaseStore} from '@/stores/base'
 import {useTaskStore} from '@/stores/tasks'
@@ -220,6 +238,8 @@ import {useIntervalFn} from '@vueuse/core'
 import {playPopSound} from '@/helpers/playPop'
 import {isEditorContentEmpty} from '@/helpers/editorContentEmpty'
 import {TASK_REPEAT_MODES} from '@/types/IRepeatMode'
+
+const collapsed = ref(false)
 
 const props = withDefaults(defineProps<{
 	theTask: ITask,
@@ -381,6 +401,27 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+.task-tree-control {
+	display: flex;
+	align-items: center;
+}
+
+.task-tree-gutter {
+	width: 1.25rem; /* same width regardless of chevron */
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.collapse-subtask-button {
+	padding: 0;
+	min-height: auto;
+}
+
+.subtasks-collapsed {
+	transform: rotate(-90deg);
+}
 .task {
 	display: flex;
 	flex-wrap: wrap;
